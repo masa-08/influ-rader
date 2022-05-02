@@ -1,0 +1,66 @@
+[tool.poetry]
+name = "influ-rader"
+version = "0.1.0"
+description = ""
+authors = ["Masaharu Shimizu <masaharu.shimizu08@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+tweepy = "^4.8.0"
+toml = "^0.10.2"
+discord = "^1.7.3"
+firebase-admin = "^5.2.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+black = "^22.3.0"
+isort = "^5.10.1"
+mypy = "^0.950"
+autoflake = "^1.4"
+flake9 = "^3.8.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+
+[tool.black]
+line-length = 120
+exclude = '''
+(
+    /(
+        \.git
+        |\.venv
+        |\.vscode
+        |\.mypy_cache
+        |\README.md
+        |\__pycache__
+    )/
+)
+'''
+
+[tool.flake8]
+max-line-length = 120
+exclude = ".venv"
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = false
+ignore_errors = false
+ignore_missing_imports = true
+implicit_reexport = false
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
