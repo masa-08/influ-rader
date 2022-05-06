@@ -8,6 +8,8 @@ from error import ConfigError
 from error import ReadEnvError
 
 class Config():
+    ENVIRONMENTAL_VARIABLES = ["GOOGLE_APPLICATION_CREDENTIALS", "TWITTER_BAREAR_TOKEN"]
+
     def __init__(self) -> None:
         self.__load_config_file()
         self.__load_environmental_variable()
@@ -32,8 +34,15 @@ class Config():
 
 
     def __load_environmental_variable(self) -> None:
-        google_credential = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        if google_credential is None:
-            logger.exception("Failed to read environmental variable: `GOOGLE_APPLICATION_CREDENTIALS`")
+        if not self.__validate_environmental_variables():
             raise ReadEnvError
-        self.google_credential = google_credential
+        self.google_credential = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        self.twitter_barear_token = os.environ.get("TWITTER_BAREAR_TOKEN")
+
+
+    def __validate_environmental_variables(self) -> bool:
+        unset_variables = [v for v in self.ENVIRONMENTAL_VARIABLES if os.environ.get(v) is None]
+        if unset_variables:
+            logger.error(f"Failed to read these environmental variables: `{unset_variables}`")
+            return False
+        return True
