@@ -1,10 +1,10 @@
 from typing import List, Optional
-from discord.ext import commands, tasks
-from loguru import logger
 
-from twitter import Twitter
 from db import Db
-from error import TwitterRequestError, DbOperationError
+from discord.ext import commands, tasks
+from error import DbOperationError, TwitterRequestError
+from loguru import logger
+from twitter import Twitter
 
 
 class TwitterCog(commands.Cog):
@@ -21,7 +21,6 @@ class TwitterCog(commands.Cog):
             raise
         self.diff_users_followings.start()
 
-
     @tasks.loop(seconds=30)
     async def diff_users_followings(self) -> None:
         result_twitter = self.__get_users_following_from_twitter(self.target_user_ids)
@@ -31,23 +30,23 @@ class TwitterCog(commands.Cog):
 
         await self.__display(diff_twitter_db)
 
-
-    async def diff_users_followings_twitter_db(self, from_twitter: dict[str, List[str]], from_db: dict[str, List[str]]) -> dict[str, List[str]]:
+    async def diff_users_followings_twitter_db(
+        self, from_twitter: dict[str, List[str]], from_db: dict[str, List[str]]
+    ) -> dict[str, List[str]]:
         diff = self.__diff_users_followings_twitter_db(from_twitter, from_db)
         self.__add_users_followings(diff)
         return diff
 
-
-    async def diff_users_followings_db_twitter(self, from_db: dict[str, List[str]], from_twitter: dict[str, List[str]]) -> None:
+    async def diff_users_followings_db_twitter(
+        self, from_db: dict[str, List[str]], from_twitter: dict[str, List[str]]
+    ) -> None:
         diff = self.__diff_users_followings_db_twitter(from_db, from_twitter)
         self.__remove_users_followings(diff)
-
 
     @diff_users_followings.before_loop
     async def before_diff_user_following(self) -> None:
         logger.info("Waiting for the bot to be ready...")
         await self.bot.wait_until_ready()
-
 
     def __get_user_followings_from_twitter(self, user_id: int) -> Optional[List[str]]:
         try:
@@ -55,11 +54,10 @@ class TwitterCog(commands.Cog):
         except TwitterRequestError:
             logger.exception("Failed to get user following.")
             return None
-        except:
+        except Exception:
             logger.exception("Something wrong...")
             return None
         return [str(f) for f in following]
-
 
     def __get_users_following_from_twitter(self, user_ids: List[int]) -> Optional[dict[str, List[str]]]:
         users_following: dict[str, List[str]] = {}
@@ -73,13 +71,11 @@ class TwitterCog(commands.Cog):
             return None
         return users_following
 
-
     def __get_user_followings_from_db(self, user_id: str) -> Optional[List[str]]:
         user = self.db.get(user_id)
         if user is None or "followings" not in user:
             return None
         return user["followings"]
-
 
     def __get_users_followings_from_db(self, user_ids: List[str]) -> Optional[dict[str, List[str]]]:
         users_following: dict[str, List[str]] = {}
@@ -93,34 +89,38 @@ class TwitterCog(commands.Cog):
             return None
         return users_following
 
-
     def __diff_list(self, src: List[str], dst: List[str]) -> List[str]:
         return list(set(src) - set(dst))
-
 
     def __diff_user_followings_twitter_db(self, from_twitter: List[str], from_db: List[str]) -> List[str]:
         return self.__diff_list(from_twitter, from_db)
 
-
     def __diff_user_followings_db_twitter(self, from_db: List[str], from_twitter: List[str]) -> List[str]:
         return self.__diff_list(from_db, from_twitter)
 
-
-    def __diff_users_followings_twitter_db(self, from_twitter: dict[str, List[str]], from_db: dict[str, List[str]]) -> dict[str, List[str]]:
+    def __diff_users_followings_twitter_db(
+        self, from_twitter: dict[str, List[str]], from_db: dict[str, List[str]]
+    ) -> dict[str, List[str]]:
         """
         Twitterからのレスポンスに含まれていて、DBに保存されていないfollowingsを抽出する
         対象のユーザが新たにフォローした人を抽出できる想定
         """
-        return {k: self.__diff_user_followings_twitter_db(v, from_db[k]) if k in from_db else v for k, v in from_twitter.items()}
+        return {
+            k: self.__diff_user_followings_twitter_db(v, from_db[k]) if k in from_db else v
+            for k, v in from_twitter.items()
+        }
 
-
-    def __diff_users_followings_db_twitter(self, from_db: dict[str, List[str]], from_twitter: dict[str, List[str]]) -> dict[str, List[str]]:
+    def __diff_users_followings_db_twitter(
+        self, from_db: dict[str, List[str]], from_twitter: dict[str, List[str]]
+    ) -> dict[str, List[str]]:
         """
         DBに保存されていて、Twitterからのレスポンスに含まれていないfollowingsを抽出する
         対象のユーザがフォロー解除した人を抽出できる想定
         """
-        return {k: self.__diff_user_followings_db_twitter(v, from_twitter[k]) if k in from_twitter else v for k, v in from_db.items()}
-
+        return {
+            k: self.__diff_user_followings_db_twitter(v, from_twitter[k]) if k in from_twitter else v
+            for k, v in from_db.items()
+        }
 
     def __add_user_followings(self, key: str, value: List[str]) -> None:
         if self.db.has_record(key):
@@ -132,18 +132,16 @@ class TwitterCog(commands.Cog):
                 logger.info(f"Add followings for user id `{key}`")
         else:
             try:
-                self.db.add(key, { "followings": value })
+                self.db.add(key, {"followings": value})
             except DbOperationError:
                 return
             else:
                 logger.info(f"Add followings for user id `{key}`")
 
-
     def __add_users_followings(self, diffs: dict[str, List[str]]) -> None:
         for k, v in diffs.items():
-            if v: # MEMO: 差分があるときだけ実行する
+            if v:  # MEMO: 差分があるときだけ実行する
                 self.__add_user_followings(k, v)
-
 
     def __remove_user_followings(self, key: str, value: List[str]) -> None:
         if not self.db.has_record(key):
@@ -155,12 +153,10 @@ class TwitterCog(commands.Cog):
         else:
             logger.info(f"Remove followings for user id `{key}`")
 
-
     def __remove_users_followings(self, diffs: dict[str, List[str]]) -> None:
         for k, v in diffs.items():
-            if v: # MEMO: 差分があるときだけ実行する
+            if v:  # MEMO: 差分があるときだけ実行する
                 self.__remove_user_followings(k, v)
-
 
     async def __display(self, diffs: dict[str, List[str]]) -> None:
         channel = self.bot.get_channel(self.channel_id)

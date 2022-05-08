@@ -1,13 +1,12 @@
 import os
 from typing import Any, List
 
-from loguru import logger
 import toml
+from error import ConfigError, ReadEnvError
+from loguru import logger
 
-from error import ConfigError
-from error import ReadEnvError
 
-class Config():
+class Config:
     GOOGLE = "GOOGLE_APPLICATION_CREDENTIALS"
     TWITTER = "TWITTER_BAREAR_TOKEN"
     DISCORD = "DISCORD_BOT_TOKEN"
@@ -17,7 +16,6 @@ class Config():
     def __init__(self) -> None:
         self.__load_config_file()
         self.__load_environmental_variable()
-
 
     def __load_config_file(self) -> None:
         try:
@@ -32,10 +30,8 @@ class Config():
             logger.exception("Config validation was failed")
             raise
 
-
     def __validate_config_file(self, config: dict[str, Any]) -> bool:
         return ("target" in config) and ("users" in config["target"])
-
 
     def __load_environmental_variable(self) -> None:
         if not self.__validate_environmental_variables():
@@ -48,7 +44,6 @@ class Config():
         except ValueError:
             logger.exception("Discord channel id should be integer value")
             raise ReadEnvError
-
 
     def __validate_environmental_variables(self) -> bool:
         unset_variables = [v for v in self.ENVIRONMENTAL_VARIABLES if os.environ.get(v) is None]
