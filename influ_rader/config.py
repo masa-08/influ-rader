@@ -8,7 +8,11 @@ from error import ConfigError
 from error import ReadEnvError
 
 class Config():
-    ENVIRONMENTAL_VARIABLES = ["GOOGLE_APPLICATION_CREDENTIALS", "TWITTER_BAREAR_TOKEN"]
+    GOOGLE = "GOOGLE_APPLICATION_CREDENTIALS"
+    TWITTER = "TWITTER_BAREAR_TOKEN"
+    DISCORD = "DISCORD_BOT_TOKEN"
+    CHANNEL = "DISCORD_CHANNEL_ID"
+    ENVIRONMENTAL_VARIABLES = [GOOGLE, TWITTER, DISCORD, CHANNEL]
 
     def __init__(self) -> None:
         self.__load_config_file()
@@ -36,8 +40,14 @@ class Config():
     def __load_environmental_variable(self) -> None:
         if not self.__validate_environmental_variables():
             raise ReadEnvError
-        self.google_credential = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        self.twitter_barear_token = os.environ.get("TWITTER_BAREAR_TOKEN")
+        self.google_credential = os.environ.get(self.GOOGLE)
+        self.twitter_barear_token = os.environ.get(self.TWITTER)
+        self.discord_bot_token = os.environ.get(self.DISCORD)
+        try:
+            self.discord_channel_id = int(os.environ.get(self.CHANNEL) or "")
+        except ValueError:
+            logger.exception("Discord channel id should be integer value")
+            raise ReadEnvError
 
 
     def __validate_environmental_variables(self) -> bool:
