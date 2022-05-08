@@ -7,7 +7,6 @@ authors = ["Masaharu Shimizu <masaharu.shimizu08@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 tweepy = "^4.8.0"
-toml = "^0.10.2"
 discord = "^1.7.3"
 firebase-admin = "^5.2.0"
 loguru = "^0.6.0"
