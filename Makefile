@@ -29,3 +29,8 @@ lint-nofix:
 type:
 	poetry run mypy ${TARGET} --no-incremental --cache-dir=nul
 
+deploy-dev:
+	git push heroku-dev main
+
+env-dev:
+	heroku config:push -r heroku-dev --overwrite --file=.env.staging

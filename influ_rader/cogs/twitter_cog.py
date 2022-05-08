@@ -21,7 +21,7 @@ class TwitterCog(commands.Cog):
             raise
         self.diff_users_followings.start()
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(hours=24) # 1日に1回実行する
     async def diff_users_followings(self) -> None:
         result_twitter = self.__get_users_following_from_twitter(self.target_user_ids)
         result_db = self.__get_users_followings_from_db(self.target_user_ids)
