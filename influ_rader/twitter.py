@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, overload, Union
 from loguru import logger
 import tweepy
 
@@ -15,11 +15,31 @@ class Twitter():
         self.__client = tweepy.Client(bearer_token=bearer_token)
 
 
-    def get_user(self, username: str) -> User:
-        res = self.__client.get_user(username=username)
+    @overload
+    def get_user(self, arg: int) -> User:
+        ...
+
+
+    @overload
+    def get_user(self, arg: str) -> User:
+        ...
+
+
+    def get_user(self, arg: Union[int, str]) -> User:
+        res = self.__client.get_user(id=arg) if isinstance(arg, int) else self.__client.get_user(username=arg)
         if len(res.errors) != 0:
             raise TwitterRequestError()
         return User(res.data)
+
+
+    # TODO: ジェネリクスとかでget_usersメソッドと統合する
+    def get_users_by_ids(self, user_ids: List[int]) -> List[User]:
+        try:
+            users = [self.get_user(i) for i in user_ids]
+        except TwitterRequestError:
+            logger.exception("Failed to get users info from Twitter API")
+            raise
+        return users
 
 
     def get_users(self, usernames: List[str]) -> List[User]:
