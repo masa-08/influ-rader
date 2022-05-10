@@ -28,3 +28,7 @@ class DbInitializeError(DbError):
 
 class DbOperationError(DbError):
     """DBへのCRUD操作でエラーが発生したことを表す例外クラス"""
+
+
+class BotError(AppError):
+    """Bot関連の例外クラス"""
