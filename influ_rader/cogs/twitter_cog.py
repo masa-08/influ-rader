@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from db import Db
 from discord.ext import commands, tasks
-from error import DbOperationError, TwitterRequestError
+from error import DbOperationError, TwitterRequestError, BotError
 from loguru import logger
 from twitter import Twitter
 
@@ -159,8 +159,13 @@ class TwitterCog(commands.Cog):
                 self.__remove_user_followings(k, v)
 
     async def __display(self, diffs: dict[str, List[str]]) -> None:
-        channel = self.bot.get_channel(self.channel_id)
         url = "https://twitter.com/"
+        channel = self.bot.get_channel(self.channel_id)
+        print(channel)
+        if channel is None:
+            logger.error(f"Failed to get a channel with id `{self.channel_id}`")
+            raise BotError
+
         for target_user_id, following_user_ids in diffs.items():
             try:
                 target_user = self.twitter.get_user(int(target_user_id))
