@@ -3,6 +3,7 @@ from typing import List, Union, overload
 import tweepy
 from error import TwitterRequestError
 from loguru import logger
+from tweepy import TooManyRequests
 
 
 class User(tweepy.User):
@@ -23,7 +24,11 @@ class Twitter:
         ...
 
     def get_user(self, arg: Union[int, str]) -> User:
-        res = self.__client.get_user(id=arg) if isinstance(arg, int) else self.__client.get_user(username=arg)
+        try:
+            res = self.__client.get_user(id=arg) if isinstance(arg, int) else self.__client.get_user(username=arg)
+        except TooManyRequests:
+            logger.exception("Failed to get user data because of Twitter API threshold")
+            raise TwitterRequestError()
         if len(res.errors) != 0:
             raise TwitterRequestError()
         return User(res.data)
@@ -50,7 +55,11 @@ class Twitter:
         next_token: str = ""
         while True:
             pagination_token = next_token if next_token else None
-            res = self.__client.get_users_following(id=user_id, max_results=1000, pagination_token=pagination_token)
+            try:
+                res = self.__client.get_users_following(id=user_id, max_results=1000, pagination_token=pagination_token)
+            except TooManyRequests:
+                logger.exception("Failed to get user id following data because of Twitter API threshold")
+                raise TwitterRequestError()
             if len(res.errors) != 0:
                 raise TwitterRequestError()
 

@@ -1,7 +1,8 @@
-from config import Config
-from twitter import Twitter
-from db import Db
 from bot import Bot
+from config import Config
+from db import Db
+from twitter import Twitter
+
 
 def main() -> None:
     config = Config()
