@@ -161,7 +161,6 @@ class TwitterCog(commands.Cog):
     async def __display(self, diffs: dict[str, List[str]]) -> None:
         url = "https://twitter.com/"
         channel = self.bot.get_channel(self.channel_id)
-        print(channel)
         if channel is None:
             logger.error(f"Failed to get a channel with id `{self.channel_id}`")
             raise BotError
