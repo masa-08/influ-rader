@@ -32,7 +32,6 @@ class Config:
             if not target_users:
                 raise ReadEnvError
             self.target_users: List[str] = target_users.replace(" ", "").split(",")
-            print(self.target_users)
         except ReadEnvError:
             logger.exception("Target users should be more than one")
             raise

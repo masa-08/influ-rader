@@ -3,7 +3,7 @@ from typing import List, Union, overload
 import tweepy
 from error import TwitterRequestError
 from loguru import logger
-from tweepy import TooManyRequests
+from tweepy import TooManyRequests, Paginator, Response
 
 
 class User(tweepy.User):
@@ -24,13 +24,22 @@ class Twitter:
         ...
 
     def get_user(self, arg: Union[int, str]) -> User:
-        try:
-            res = self.__client.get_user(id=arg) if isinstance(arg, int) else self.__client.get_user(username=arg)
-        except TooManyRequests:
-            logger.exception("Failed to get user data because of Twitter API threshold")
-            raise TwitterRequestError()
-        if len(res.errors) != 0:
-            raise TwitterRequestError()
+        """
+            ユーザ情報を取得する
+            arg: ユーザID(int) or ユーザ名(str)
+
+            Twitter APIの制限に引っかかった際にAPIリクエストをリトライできるようにループ内でリクエスト処理を行う
+        """
+        for i in range(10): # リトライ上限は10回
+            try:
+                res = self.__client.get_user(id=arg) if isinstance(arg, int) else self.__client.get_user(username=arg)
+            except TooManyRequests:
+                logger.exception("Failed to get user data because of Twitter API threshold")
+                raise TwitterRequestError()
+            else:
+                if len(res.errors) != 0:
+                    raise TwitterRequestError()
+                break
         return User(res.data)
 
     # TODO: ジェネリクスとかでget_usersメソッドと統合する
@@ -52,23 +61,17 @@ class Twitter:
 
     def get_user_id_following(self, user_id: int) -> List[int]:
         following: List[int] = []
-        next_token: str = ""
-        while True:
-            pagination_token = next_token if next_token else None
-            try:
-                res = self.__client.get_users_following(id=user_id, max_results=1000, pagination_token=pagination_token)
-            except TooManyRequests:
-                logger.exception("Failed to get user id following data because of Twitter API threshold")
-                raise TwitterRequestError()
-            if len(res.errors) != 0:
-                raise TwitterRequestError()
-
-            # TwitterのユーザIDだけ抽出する
-            following += [u.id for u in [User(d) for d in res.data]]
-            # 最終ページまで確認できたらループを抜ける
-            if "next_token" not in res.meta:
-                break
-            next_token = res.meta["next_token"]
+        try:
+            for res in Paginator(self.__client.get_users_following, id=user_id, max_results=1000):
+                r: Response = res # 型付け
+                if len(r.errors) != 0:
+                    raise TwitterRequestError()
+                following += [u.id for u in [User(d) for d in r.data]]
+        except TooManyRequests:
+            logger.exception("Failed to get user id following data because of Twitter API threshold")
+            raise TwitterRequestError()
+        except TwitterRequestError:
+            raise
         return following
 
     def get_users_id_following(self, user_ids: List[int]) -> dict[int, List[int]]:
