@@ -23,12 +23,25 @@ class TwitterCog(commands.Cog):
 
     @tasks.loop(hours=24)  # 1日に1回実行する
     async def diff_users_followings(self) -> None:
-        result_twitter = self.__get_users_following_from_twitter(self.target_user_ids)
-        result_db = self.__get_users_followings_from_db(self.target_user_ids)
-        diff_twitter_db = await self.diff_users_followings_twitter_db(result_twitter or {}, result_db or {})
-        await self.diff_users_followings_db_twitter(result_db or {}, result_twitter or {})
+        try:
+            result_twitter = self.__get_users_following_from_twitter(self.target_user_ids)
+            result_db = self.__get_users_followings_from_db(self.target_user_ids)
+        except TwitterRequestError:
+            logger.error("Failed to get results via Twitter API...")
+            return
+        except DbOperationError:
+            logger.error("Failed to get results via Database API...")
+            return
+        except Exception:
+            logger.error("Some problem occurred on getting results...")
+            return
+        diff_twitter_db = await self.diff_users_followings_twitter_db(result_twitter, result_db)
+        await self.diff_users_followings_db_twitter(result_db, result_twitter)
 
-        await self.__display(diff_twitter_db)
+        try:
+            await self.__display(diff_twitter_db)
+        except BotError:
+            logger.error("Failed to post results to the discord...")
 
     async def diff_users_followings_twitter_db(
         self, from_twitter: dict[str, List[str]], from_db: dict[str, List[str]]
@@ -48,18 +61,15 @@ class TwitterCog(commands.Cog):
         logger.info("Waiting for the bot to be ready...")
         await self.bot.wait_until_ready()
 
-    def __get_user_followings_from_twitter(self, user_id: int) -> Optional[List[str]]:
+    def __get_user_followings_from_twitter(self, user_id: int) -> List[str]:
         try:
             following = self.twitter.get_user_id_following(user_id)
         except TwitterRequestError:
             logger.exception("Failed to get user following.")
-            return None
-        except Exception:
-            logger.exception("Something wrong...")
-            return None
+            raise
         return [str(f) for f in following]
 
-    def __get_users_following_from_twitter(self, user_ids: List[int]) -> Optional[dict[str, List[str]]]:
+    def __get_users_following_from_twitter(self, user_ids: List[int]) -> dict[str, List[str]]:
         users_following: dict[str, List[str]] = {}
         try:
             for user_id in user_ids:
@@ -68,25 +78,25 @@ class TwitterCog(commands.Cog):
                     users_following[str(user_id)] = following
         except TwitterRequestError:
             logger.exception("Failed to get users following from Twitter")
-            return None
+            raise
         return users_following
 
-    def __get_user_followings_from_db(self, user_id: str) -> Optional[List[str]]:
+    def __get_user_followings_from_db(self, user_id: str) -> List[str]:
         user = self.db.get(user_id)
         if user is None or "followings" not in user:
-            return None
+            return []
         return user["followings"]
 
-    def __get_users_followings_from_db(self, user_ids: List[str]) -> Optional[dict[str, List[str]]]:
+    def __get_users_followings_from_db(self, user_ids: List[str]) -> dict[str, List[str]]:
         users_following: dict[str, List[str]] = {}
         try:
             for user_id in user_ids:
                 following = self.__get_user_followings_from_db(str(user_id))
-                if following is not None:
+                if following:
                     users_following[str(user_id)] = following
         except DbOperationError:
             logger.exception("Failed to get users following from DB")
-            return None
+            raise
         return users_following
 
     def __diff_list(self, src: List[str], dst: List[str]) -> List[str]:
