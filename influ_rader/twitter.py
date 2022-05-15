@@ -1,9 +1,11 @@
+import time
 from typing import List, Union, overload
 
 import tweepy
-from error import TwitterRequestError
 from loguru import logger
-from tweepy import TooManyRequests, Paginator, Response
+from tweepy import Paginator, Response, TooManyRequests
+
+from influ_rader.error import TwitterRequestError
 
 
 class User(tweepy.User):
@@ -14,6 +16,7 @@ class User(tweepy.User):
 class Twitter:
     def __init__(self, bearer_token: str) -> None:
         self.__client = tweepy.Client(bearer_token=bearer_token)
+        self.__retry_interval = 15 * 60  # 15分
 
     @overload
     def get_user(self, arg: int) -> User:
@@ -25,22 +28,23 @@ class Twitter:
 
     def get_user(self, arg: Union[int, str]) -> User:
         """
-            ユーザ情報を取得する
-            arg: ユーザID(int) or ユーザ名(str)
+        ユーザ情報を取得する
+        arg: ユーザID(int) or ユーザ名(str)
 
-            Twitter APIの制限に引っかかった際にAPIリクエストをリトライできるようにループ内でリクエスト処理を行う
+        Twitter APIの制限に引っかかった際にAPIリクエストをリトライできるようにループ内でリクエスト処理を行う
         """
-        for i in range(10): # リトライ上限は10回
+        for i in range(10):  # リトライ上限は10回
             try:
                 res = self.__client.get_user(id=arg) if isinstance(arg, int) else self.__client.get_user(username=arg)
             except TooManyRequests:
-                logger.exception("Failed to get user data because of Twitter API threshold")
-                raise TwitterRequestError()
+                logger.warning("Twitter API request limit reached. Wait 15 minitue and retry.")
+                time.sleep(self.__retry_interval)  # 15分待つ
             else:
                 if len(res.errors) != 0:
                     raise TwitterRequestError()
-                break
-        return User(res.data)
+                return User(res.data)
+        logger.error("Failed to get user data for 10 times due to some reason...")
+        raise TwitterRequestError()
 
     # TODO: ジェネリクスとかでget_usersメソッドと統合する
     def get_users_by_ids(self, user_ids: List[int]) -> List[User]:
@@ -63,7 +67,7 @@ class Twitter:
         following: List[int] = []
         try:
             for res in Paginator(self.__client.get_users_following, id=user_id, max_results=1000):
-                r: Response = res # 型付け
+                r: Response = res  # 型付け
                 if len(r.errors) != 0:
                     raise TwitterRequestError()
                 following += [u.id for u in [User(d) for d in r.data]]
