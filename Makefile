@@ -29,6 +29,9 @@ lint-nofix:
 type:
 	poetry run mypy ${TARGET} --no-incremental --cache-dir=nul
 
+test:
+	poetry run pytest ${TARGET}
+
 deploy-dev:
 	git push heroku-dev main
 
