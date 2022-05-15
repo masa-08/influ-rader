@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from db import Db
 from discord.ext import commands, tasks
@@ -133,20 +133,15 @@ class TwitterCog(commands.Cog):
         }
 
     def __add_user_followings(self, key: str, value: List[str]) -> None:
-        if self.db.has_record(key):
-            try:
+        try:
+            if self.db.has_record(key):
                 self.db.add_to_array(key, "followings", value)
-            except DbOperationError:
-                return
             else:
-                logger.info(f"Add followings for user id `{key}`")
-        else:
-            try:
                 self.db.add(key, {"followings": value})
-            except DbOperationError:
-                return
-            else:
-                logger.info(f"Add followings for user id `{key}`")
+        except DbOperationError:
+            return
+        else:
+            logger.info(f"Add followings for user id `{key}`")
 
     def __add_users_followings(self, diffs: dict[str, List[str]]) -> None:
         for k, v in diffs.items():
