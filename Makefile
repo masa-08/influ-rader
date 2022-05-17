@@ -32,6 +32,12 @@ type:
 test:
 	poetry run pytest ${TARGET}
 
+deploy-prod:
+	git push heroku-prod main
+
+env-prod:
+	heroku config:push -r heroku-prod --overwrite --file=.env.production
+
 deploy-dev:
 	git push heroku-dev main
 
