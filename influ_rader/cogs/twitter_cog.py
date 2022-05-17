@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from typing import List
 
 from db import Db
@@ -178,5 +179,8 @@ class TwitterCog(commands.Cog):
             except TwitterRequestError:
                 continue
             if usernames:
-                message = f"**{target_user.name}(@{target_user.username})**が新しくフォローしたアカウント\n" + "\n".join(usernames)
-                await channel.send(message)
+                try:
+                    message = f"**{target_user.name}(@{target_user.username})**が新しくフォローしたアカウント\n" + "\n".join(usernames)
+                    await channel.send(message)
+                except HTTPException:
+                    logger.exception("Cannot send message to the discord channel.")
